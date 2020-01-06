@@ -3,7 +3,7 @@ using dotenv.net;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace samples
+namespace console
 {
     public class ProgramFake
     {

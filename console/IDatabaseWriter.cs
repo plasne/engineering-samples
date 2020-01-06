@@ -1,6 +1,6 @@
 using System;
 
-namespace samples
+namespace console
 {
 
     public interface IDatabaseWriter : IDisposable

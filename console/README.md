@@ -17,7 +17,7 @@ DotEnv is used for configuration management, so you can create a ".env" file in 
 
 -   LOG_LEVEL: Can be set to Critical, Error, Trace, Debug, Information, Warning, or None and determines the minimum logging level.
 -   DISABLE_COLORS: Can be set to "true" if you want suppress the logging messages being in different colors; this is particularly useful when looking at Docker logs.
--   APPINSIGHTS_KEY: You must set this to the instrumentation key for AppInsights.
+-   APPINSIGHTS_INSTRUMENTATIONKEY: You must set this to the instrumentation key for AppInsights.
 
 Note that running "dotnet test" executes in a sub-folder, so the path has to be changed to look for .env in the root folder using the following:
 
@@ -26,15 +26,11 @@ string path = AppDomain.CurrentDomain.BaseDirectory.Split("/bin/")[0];
 DotEnv.Config(false, path + "/.env");
 ```
 
-## Application Insights
-
-An environmental variable must be set as APPINSIGHTS_KEY. On a "dotnet run", the DoWork() step will log as a "request" in AppInsights.
-
 ## Unit Testing
 
 Unit Tests in this sample make use of xUnit (https://xunit.net) and Moq (https://github.com/Moq/moq4/wiki/Quickstart).
 
-Since this project is a dotnet console application, you must include the following in the .csproj file for xUnit to work:
+You must include the following in the .csproj file for xUnit to work:
 
 ```xml
 <PropertyGroup>
@@ -68,9 +64,13 @@ Make note that the object is a Singleton.
 ```
 > dotnet run
 
-info 1/3/2020 8:49:21 PM real write to database.
-info 1/3/2020 8:49:21 PM flushing (waiting for 5 seconds)...
-info 1/3/2020 8:49:27 PM flushed.
+info 1/6/2020 4:14:46 PM LOG_LEVEL = 'Trace'
+info 1/6/2020 4:14:46 PM DISABLE_COLORS = 'False'
+info 1/6/2020 4:14:46 PM APPINSIGHTS_INSTRUMENTATIONKEY = '(set)'
+dbug 1/6/2020 4:14:46 PM appinsights: StartOperation()
+dbug 1/6/2020 4:14:46 PM appinsights: StopOperation()
+info 1/6/2020 4:14:46 PM real write to database.
+info 1/6/2020 4:14:46 PM flushing (waiting for 5 seconds)...info 1/3/2020 8:49:27 PM flushed.
 info 1/3/2020 8:49:27 PM real dispose.
 ```
 
@@ -97,3 +97,13 @@ Total tests: 3
      Passed: 3
  Total time: 0.9314 Seconds
 ```
+
+## Logging
+
+I use a custom console logger because the out-of-box logger is very slow. In addition, the logger I wrote put all messages on a single line instead of two, which makes verbose logs much easier to read.
+
+## Application Insights
+
+An environmental variable must be set as APPINSIGHTS_KEY. On a "dotnet run", the DoWork() step will log as a "request" in AppInsights.
+
+You should check the logs for type "requests".

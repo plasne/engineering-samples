@@ -5,7 +5,7 @@ using Moq;
 using Microsoft.Extensions.Logging;
 using dotenv.net;
 
-namespace samples
+namespace console
 {
 
     public class MockDatabaseWriterFixture : IDisposable

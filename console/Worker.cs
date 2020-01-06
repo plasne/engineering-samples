@@ -1,4 +1,4 @@
-namespace samples
+namespace console
 {
 
     public class Worker

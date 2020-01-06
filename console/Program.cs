@@ -8,7 +8,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.DataContracts;
 using dotenv.net;
 
-namespace samples
+namespace console
 {
     class Program
     {
@@ -32,11 +32,11 @@ namespace samples
             }
         }
 
-        private static string AppInsightsKey
+        private static string AppInsightsInstrumentationKey
         {
             get
             {
-                return System.Environment.GetEnvironmentVariable("APPINSIGHTS_KEY");
+                return System.Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
             }
         }
 
@@ -76,7 +76,7 @@ namespace samples
 
             // setup telemetry
             TelemetryConfiguration telemetryConfig = TelemetryConfiguration.CreateDefault();
-            telemetryConfig.InstrumentationKey = System.Environment.GetEnvironmentVariable("APPINSIGHTS_KEY");
+            telemetryConfig.InstrumentationKey = AppInsightsInstrumentationKey;
             telemetryConfig.TelemetryInitializers.Add(new OperationCorrelationTelemetryInitializer());
             var telemetryClient = new TelemetryClient(telemetryConfig);
 
@@ -91,6 +91,9 @@ namespace samples
             using (var scope = provider.CreateScope())
             {
                 var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
+                logger.LogInformation($"LOG_LEVEL = '{Program.LogLevel}'");
+                logger.LogInformation($"DISABLE_COLORS = '{Program.DisableColors}'");
+                logger.LogInformation($"APPINSIGHTS_INSTRUMENTATIONKEY = '{(string.IsNullOrEmpty(Program.AppInsightsInstrumentationKey) ? "(not-set)" : "(set)")}'");
 
                 // do work
                 var op = telemetryClient.StartOperation(new RequestTelemetry() { Name = "DoWork" });

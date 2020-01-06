@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace samples
+namespace console
 {
 
     public class FakeDatabaseWriter : IDatabaseWriter
