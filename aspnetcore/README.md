@@ -23,13 +23,6 @@ DotEnv is used for configuration management, so you can create a ".env" file in 
 -   ASPNETCORE_ENVIRONMENT: You can set this to "Development", "Staging", or "Production".
 -   APPINSIGHTS_KEY: [REQUIRED] You must set this to the instrumentation key for AppInsights.
 
-Note that running "dotnet test" executes in a sub-folder, so the path has to be changed to look for .env in the root folder using the following:
-
-```c#
-string path = AppDomain.CurrentDomain.BaseDirectory.Split("/bin/")[0];
-DotEnv.Config(false, path + "/.env");
-```
-
 ## CORS
 
 The implementation of CORS can be seen in the code, however, if you trying to test using cURL or Postman, you will need to do the following:
@@ -51,6 +44,9 @@ You must include the following in the .csproj file for xUnit to work:
     <GenerateProgramFile>false</GenerateProgramFile>
 </PropertyGroup>
 ```
+
+In addition, this plug-in should be installed for VSCode:
+https://github.com/formulahendry/vscode-dotnet-test-explorer
 
 ### Running the application
 
@@ -102,7 +98,7 @@ If you want to enable logging for hosting in App Services, you also have to foll
 
 ## Application Insights
 
-An environmental variable must be set as APPINSIGHTS_KEY. Querying the /weatherforecast endpoint will log the request to App Insights.
+An environmental variable must be set as APPINSIGHTS_INSTRUMENTATIONKEY. Querying the /weatherforecast endpoint will log the request to App Insights.
 
 You should check the logs for type "requests" or you can use the Live Metrics Stream.
 

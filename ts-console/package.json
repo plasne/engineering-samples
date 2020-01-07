@@ -1,0 +1,40 @@
+{
+  "name": "ts-console",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "prestart": "tsc",
+    "start": "node dist/main.js",
+    "pretest": "tsc",
+    "test": "nyc mocha dist/test.js",
+    "watch": "mocha-typescript-watch",
+    "prepare": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "applicationinsights": "^1.6.0",
+    "dotenv": "^8.2.0",
+    "findup-sync": "^4.0.0",
+    "reflect-metadata": "^0.1.13",
+    "tsyringe": "^4.0.1",
+    "uuidv4": "^6.0.0",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.7",
+    "@types/findup-sync": "^2.0.2",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^13.1.4",
+    "chai": "^4.2.0",
+    "mocha": "^7.0.0",
+    "mocha-typescript": "^1.1.17",
+    "nyc": "^15.0.0",
+    "prettier": "^1.19.1",
+    "source-map-support": "^0.5.16",
+    "tslint": "^5.20.1",
+    "typemoq": "^2.1.0",
+    "typescript": "^3.7.4"
+  }
+}

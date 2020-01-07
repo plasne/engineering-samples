@@ -47,8 +47,8 @@ namespace console
             services
                 .AddLogging(configure =>
                 {
-                    configure.AddProvider(new SingleLineConsoleLoggerProvider(
-                        new SingleLineConsoleLoggerConfiguration()
+                    configure.AddProvider(new tools.SingleLineConsoleLoggerProvider(
+                        new tools.SingleLineConsoleLoggerConfiguration()
                         {
                             DisableColors = DisableColors
                         }
@@ -71,8 +71,9 @@ namespace console
         static void Main(string[] args)
         {
 
-            // load configuration
-            DotEnv.Config();
+            // load configuration (optional)
+            var env = tools.FindFile.Up(".env");
+            if (!string.IsNullOrEmpty(env)) DotEnv.Config(true, env);
 
             // setup telemetry
             TelemetryConfiguration telemetryConfig = TelemetryConfiguration.CreateDefault();

@@ -11,7 +11,26 @@ This sample incorporates the following features into a dotnet console applicatio
 
 This should serve as a starting point for console applications that are common components of microservices solutions.
 
+## Installation
+
+To install all components into a new project, you can run the following:
+
+```bash
+dotnet new console
+dotnet add package dotenv.net
+dotnet add package Microsoft.ApplicationInsights
+dotnet add package Microsoft.Extensions.DependencyInjection
+dotnet add package Microsoft.Extensions.Logging
+dotnet add package Moq
+dotnet add package xunit
+dotnet add package xunit.runner.visualstudio
+dotnet add package Microsoft.NET.Test.Sdk
+dotnet restore
+```
+
 ## Configuration
+
+https://github.com/bolorundurowb/dotenv.net
 
 DotEnv is used for configuration management, so you can create a ".env" file in the folder you are running from. It can contain any of the following:
 
@@ -19,24 +38,21 @@ DotEnv is used for configuration management, so you can create a ".env" file in 
 -   DISABLE_COLORS: Can be set to "true" if you want suppress the logging messages being in different colors; this is particularly useful when looking at Docker logs.
 -   APPINSIGHTS_INSTRUMENTATIONKEY: You must set this to the instrumentation key for AppInsights.
 
-Note that running "dotnet test" executes in a sub-folder, so the path has to be changed to look for .env in the root folder using the following:
-
-```c#
-string path = AppDomain.CurrentDomain.BaseDirectory.Split("/bin/")[0];
-DotEnv.Config(false, path + "/.env");
-```
-
 ## Unit Testing
 
-Unit Tests in this sample make use of xUnit (https://xunit.net) and Moq (https://github.com/Moq/moq4/wiki/Quickstart).
+https://xunit.net
+https://github.com/Moq/moq4/wiki/Quickstart
 
-You must include the following in the .csproj file for xUnit to work:
+The Unit Test in this sample makes use of xUnit (testing) and Moq (mocking).
 
 ```xml
 <PropertyGroup>
     <GenerateProgramFile>false</GenerateProgramFile>
 </PropertyGroup>
 ```
+
+In addition, this plug-in should be installed for VSCode:
+https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer
 
 ### ProgramFake
 
@@ -104,6 +120,8 @@ I use a custom console logger because the out-of-box logger is very slow. In add
 
 ## Application Insights
 
-An environmental variable must be set as APPINSIGHTS_KEY. On a "dotnet run", the DoWork() step will log as a "request" in AppInsights.
+https://docs.microsoft.com/en-us/azure/azure-monitor/app/asp-net-core
+
+An environmental variable must be set as APPINSIGHTS_INSTRUMENTATIONKEY. On a "dotnet run", the DoWork() step will log as a "request" in AppInsights.
 
 You should check the logs for type "requests".

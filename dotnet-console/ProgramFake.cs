@@ -13,8 +13,8 @@ namespace console
         {
 
             // load configuration (optional)
-            string path = AppDomain.CurrentDomain.BaseDirectory.Split("/bin/")[0];
-            DotEnv.Config(false, path + "/.env");
+            var env = tools.FindFile.Up(".env");
+            if (!string.IsNullOrEmpty(env)) DotEnv.Config(true, env);
 
             // support dependency injection
             var services = new ServiceCollection();
