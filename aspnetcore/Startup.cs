@@ -35,7 +35,7 @@ namespace aspnetcore
             {
                 services.AddCors(options =>
                    {
-                       options.AddPolicy("AllowedOrigins", builder =>
+                       options.AddDefaultPolicy(builder =>
                        {
                            builder.WithOrigins(allowedOrigins)
                                 .AllowAnyHeader()
@@ -81,7 +81,7 @@ namespace aspnetcore
 
             // add routing and CORS
             app.UseRouting();
-            app.UseCors("AllowedOrigins");
+            app.UseCors();
 
             // enable as appropriate
             //app.UseAuthentication();

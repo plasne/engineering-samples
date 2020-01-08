@@ -52,6 +52,29 @@ For OPTIONS preflight requests, you must also include:
 
 -   Access-Control-Request-Method:GET (matching whatever method you intend to use)
 
+This sample shows enabling CORS on all requests, however, if you want to be more selective, you might use endpoint routing or the [EnableCors] / [DisableCors] attributes:
+
+-   https://docs.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-3.1#enable-cors-with-endpoint-routing
+
+-   https://docs.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-3.1#enable-cors-with-attributes
+
+Be aware that with with aspnetcore 3.1 and higher you should now specify the middleware in addition to using [EnableCors] / [DisableCors]: https://docs.microsoft.com/en-us/aspnet/core/migration/22-to-30?view=aspnetcore-3.1&tabs=visual-studio#cors. If you want to restrict CORS except on specific endpoints, you could simply not define a default policy like so...
+
+```c#
+services.AddCors(options =>
+    {
+        options.AddPolicy("AllowedOrigins", builder =>
+        {
+            builder.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            if (!allowedOrigins.Contains("*")) builder.AllowCredentials();
+        });
+    });
+```
+
+..and then decorate methods or controllers with [EnableCors("AllowedOrigins")].
+
 ## Unit Testing
 
 https://xunit.net
