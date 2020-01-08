@@ -12,7 +12,24 @@ This sample incorporates the following features into an aspnetcore application:
 
 This should serve as a starting point for aspnetcore applications that are hosted in Azure App Service, Kubernetes, or anywhere else.
 
+## Installation
+
+To install all components into a new project, you can run the following:
+
+```bash
+dotnet new webapi
+dotnet add package dotenv.net
+dotnet add package Microsoft.ApplicationInsights.AspNetCore
+dotnet add package Moq
+dotnet add package xunit
+dotnet add package xunit.runner.visualstudio
+dotnet add package Microsoft.NET.Test.Sdk
+dotnet restore
+```
+
 ## Configuration
+
+https://github.com/bolorundurowb/dotenv.net
 
 DotEnv is used for configuration management, so you can create a ".env" file in the folder you are running from. It can contain any of the following:
 
@@ -25,6 +42,8 @@ DotEnv is used for configuration management, so you can create a ".env" file in 
 
 ## CORS
 
+https://docs.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-3.1
+
 The implementation of CORS can be seen in the code, however, if you trying to test using cURL or Postman, you will need to do the following:
 
 -   Origin:http://localhost:5000 (matching whatever you used in ALLOWED_ORIGINS)
@@ -35,7 +54,10 @@ For OPTIONS preflight requests, you must also include:
 
 ## Unit Testing
 
-The Unit Test in this sample makes use of xUnit (https://xunit.net) and Moq (https://github.com/Moq/moq4/wiki/Quickstart).
+https://xunit.net
+https://github.com/Moq/moq4/wiki/Quickstart
+
+The Unit Test in this sample makes use of xUnit (testing) and Moq (mocking).
 
 You must include the following in the .csproj file for xUnit to work:
 
@@ -46,7 +68,7 @@ You must include the following in the .csproj file for xUnit to work:
 ```
 
 In addition, this plug-in should be installed for VSCode:
-https://github.com/formulahendry/vscode-dotnet-test-explorer
+https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer
 
 ### Running the application
 
@@ -97,6 +119,8 @@ I use a custom console logger because the out-of-box logger is very slow. In add
 If you want to enable logging for hosting in App Services, you also have to follow these instructions: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-3.1#azure-app-service-provider.
 
 ## Application Insights
+
+https://docs.microsoft.com/en-us/azure/azure-monitor/app/asp-net-core
 
 An environmental variable must be set as APPINSIGHTS_INSTRUMENTATIONKEY. Querying the /weatherforecast endpoint will log the request to App Insights.
 

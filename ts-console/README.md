@@ -15,7 +15,7 @@ This should serve as a starting point for microservices-based solutions.
 
 ## Installation
 
-To install all components into a new project, you can run the following
+To install all components into a new project, you can run the following:
 
 ```bash
 npm init
