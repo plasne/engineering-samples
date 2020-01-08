@@ -78,8 +78,8 @@ namespace aspnetcore
             services
                 .AddLogging(configure =>
                 {
-                    configure.AddProvider(new SingleLineConsoleLoggerProvider(
-                        new SingleLineConsoleLoggerConfiguration()
+                    services.AddSingleton<ILoggerProvider>(p => new tools.SingleLineConsoleLoggerProvider(
+                        new tools.SingleLineConsoleLoggerConfiguration()
                         {
                             DisableColors = DisableColors
                         }

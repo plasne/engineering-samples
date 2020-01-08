@@ -21,13 +21,15 @@ namespace console
             Program.AddLogging(services);
             services.AddTransient<IDatabaseWriter, FakeDatabaseWriter>();
             services.AddTransient<Worker>();
-            var provider = services.BuildServiceProvider();
 
             // do the work
-            using (var scope = provider.CreateScope())
+            using (var provider = services.BuildServiceProvider())
             {
-                var worker = scope.ServiceProvider.GetService<Worker>();
-                worker.DoWork();
+                using (var scope = provider.CreateScope())
+                {
+                    var worker = scope.ServiceProvider.GetService<Worker>();
+                    worker.DoWork();
+                }
             }
 
         }

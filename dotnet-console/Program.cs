@@ -47,7 +47,7 @@ namespace console
             services
                 .AddLogging(configure =>
                 {
-                    configure.AddProvider(new tools.SingleLineConsoleLoggerProvider(
+                    services.AddSingleton<ILoggerProvider>(p => new tools.SingleLineConsoleLoggerProvider(
                         new tools.SingleLineConsoleLoggerConfiguration()
                         {
                             DisableColors = DisableColors
@@ -86,42 +86,49 @@ namespace console
             AddLogging(services);
             services.AddTransient<IDatabaseWriter, RealDatabaseWriter>();
             services.AddTransient<Worker>();
-            var provider = services.BuildServiceProvider();
+
+            Console.WriteLine("sutff");
 
             // main loop
-            using (var scope = provider.CreateScope())
+            using (var provider = services.BuildServiceProvider())
             {
-                var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
-                logger.LogInformation($"LOG_LEVEL = '{Program.LogLevel}'");
-                logger.LogInformation($"DISABLE_COLORS = '{Program.DisableColors}'");
-                logger.LogInformation($"APPINSIGHTS_INSTRUMENTATIONKEY = '{(string.IsNullOrEmpty(Program.AppInsightsInstrumentationKey) ? "(not-set)" : "(set)")}'");
-
-                // do work
-                var op = telemetryClient.StartOperation(new RequestTelemetry() { Name = "DoWork" });
-                logger.LogDebug("appinsights: StartOperation()");
-                try
+                using (var scope = provider.CreateScope())
                 {
-                    var worker = scope.ServiceProvider.GetService<Worker>();
-                    worker.DoWork();
-                }
-                catch (Exception e)
-                {
-                    logger.LogDebug("appinsights: TrackException()");
-                    telemetryClient.TrackException(e);
-                }
-                finally
-                {
-                    logger.LogDebug("appinsights: StopOperation()");
-                    telemetryClient.StopOperation(op);
-                }
+                    var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
+                    logger.LogInformation($"LOG_LEVEL = '{Program.LogLevel}'");
+                    logger.LogInformation($"DISABLE_COLORS = '{Program.DisableColors}'");
+                    logger.LogInformation($"APPINSIGHTS_INSTRUMENTATIONKEY = '{(string.IsNullOrEmpty(Program.AppInsightsInstrumentationKey) ? "(not-set)" : "(set)")}'");
 
-                // flush (not-blocking, so wait)
-                logger.LogInformation("flushing (waiting for 5 seconds)...");
-                telemetryClient.Flush();
-                Task.Delay(5000).Wait();
-                logger.LogInformation("flushed.");
+                    // do work
+                    var op = telemetryClient.StartOperation(new RequestTelemetry() { Name = "DoWork" });
+                    logger.LogDebug("appinsights: StartOperation()");
+                    try
+                    {
+                        var worker = scope.ServiceProvider.GetService<Worker>();
+                        worker.DoWork();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogDebug("appinsights: TrackException()");
+                        telemetryClient.TrackException(e);
+                    }
+                    finally
+                    {
+                        logger.LogDebug("appinsights: StopOperation()");
+                        telemetryClient.StopOperation(op);
+                    }
 
+                    // flush (not-blocking, so wait)
+                    logger.LogInformation("flushing telemetry (waiting for 5 seconds)...");
+                    telemetryClient.Flush();
+                    Task.Delay(5000).Wait();
+                    logger.LogInformation("flushed.");
+
+                }
             }
+
+            // dispose of the logging provider
+            //loggingProvider.Dispose();
 
         }
 

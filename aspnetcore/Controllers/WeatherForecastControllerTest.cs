@@ -53,16 +53,18 @@ namespace aspnetcore.Tests
                 return service.Object;
 
             });
-            var provider = services.BuildServiceProvider();
 
             // validate that the function enriches the data appropriately
-            using (var scope = provider.CreateScope())
+            using (var provider = services.BuildServiceProvider())
             {
-                var controller = scope.ServiceProvider.GetService<Controllers.WeatherForecastController>();
-                IEnumerable<WeatherForecast> list = controller.Get();
-                foreach (var forecast in list)
+                using (var scope = provider.CreateScope())
                 {
-                    Assert.False(string.IsNullOrEmpty(forecast.Summary));
+                    var controller = scope.ServiceProvider.GetService<Controllers.WeatherForecastController>();
+                    IEnumerable<WeatherForecast> list = controller.Get();
+                    foreach (var forecast in list)
+                    {
+                        Assert.False(string.IsNullOrEmpty(forecast.Summary));
+                    }
                 }
             }
 

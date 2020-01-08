@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace aspnetcore
+namespace tools
 {
 
     public class SingleLineConsoleLoggerProvider : ILoggerProvider
@@ -29,6 +30,10 @@ namespace aspnetcore
 
         public void Dispose()
         {
+            foreach (var logger in _loggers)
+            {
+                logger.Value.Shutdown();
+            }
             _loggers.Clear();
         }
     }
@@ -43,12 +48,37 @@ namespace aspnetcore
         private readonly string _name;
         private readonly SingleLineConsoleLoggerConfiguration _config;
         private BlockingCollection<string> Queue { get; set; } = new BlockingCollection<string>();
+        private CancellationTokenSource QueueTakeCts { get; set; } = new CancellationTokenSource();
         private Task Dispatcher { get; set; }
+        private bool IsAcceptingMessages { get; set; } = true;
+        private ManualResetEventSlim IsShutdown { get; set; } = new ManualResetEventSlim(false);
 
         public SingleLineConsoleLogger(string name, SingleLineConsoleLoggerConfiguration config)
         {
             _name = name;
             _config = config;
+            Dispatcher = Task.Run(() =>
+            {
+                while (IsAcceptingMessages)
+                {
+                    try
+                    {
+                        Console.WriteLine(Queue.Take(QueueTakeCts.Token));
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // let the loop end
+                    }
+                }
+                IsShutdown.Set();
+            });
+        }
+
+        public void Shutdown()
+        {
+            IsAcceptingMessages = false;
+            QueueTakeCts.Cancel();
+            IsShutdown.Wait(5000);
         }
 
         public IDisposable BeginScope<TState>(TState state)
@@ -59,15 +89,6 @@ namespace aspnetcore
         public bool IsEnabled(LogLevel logLevel)
         {
             return logLevel != LogLevel.None;
-        }
-
-        private void StartDispatcher()
-        {
-            if (Dispatcher != null) return;
-            Dispatcher = Task.Run(() =>
-            {
-                while (true) Console.WriteLine(Queue.Take());
-            });
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
@@ -96,9 +117,8 @@ namespace aspnetcore
                 var logLevelString = GetLogLevelString(logLevel);
                 sb.Append(logLevelString);
                 if (!_config.DisableColors) sb.Append("\u001b[0m"); // reset
-                sb.Append($" {DateTime.UtcNow.ToString()} {message}");
+                sb.Append($" {DateTime.UtcNow.ToString()} [{_name}] {message}");
                 Queue.Add(sb.ToString());
-                StartDispatcher();
 
             }
 
