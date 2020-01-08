@@ -50,7 +50,6 @@ namespace tools
         private BlockingCollection<string> Queue { get; set; } = new BlockingCollection<string>();
         private CancellationTokenSource QueueTakeCts { get; set; } = new CancellationTokenSource();
         private Task Dispatcher { get; set; }
-        private bool IsAcceptingMessages { get; set; } = true;
         private ManualResetEventSlim IsShutdown { get; set; } = new ManualResetEventSlim(false);
 
         public SingleLineConsoleLogger(string name, SingleLineConsoleLoggerConfiguration config)
@@ -59,7 +58,7 @@ namespace tools
             _config = config;
             Dispatcher = Task.Run(() =>
             {
-                while (IsAcceptingMessages)
+                while (!QueueTakeCts.IsCancellationRequested)
                 {
                     try
                     {
@@ -76,7 +75,6 @@ namespace tools
 
         public void Shutdown()
         {
-            IsAcceptingMessages = false;
             QueueTakeCts.Cancel();
             IsShutdown.Wait(5000);
         }
