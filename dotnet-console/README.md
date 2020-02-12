@@ -38,6 +38,10 @@ DotEnv is used for configuration management, so you can create a ".env" file in 
 -   DISABLE_COLORS: Can be set to "true" if you want suppress the logging messages being in different colors; this is particularly useful when looking at Docker logs.
 -   APPINSIGHTS_INSTRUMENTATIONKEY: You must set this to the instrumentation key for AppInsights.
 
+## HttpClient
+
+It is important to use the IHttpClientFactory for all HTTP/S calls. The pattern that is implemented in this sample comes from our recommendation here: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests?view=aspnetcore-3.1#use-ihttpclientfactory-in-a-console-app.
+
 ## Unit Testing
 
 https://xunit.net
@@ -51,7 +55,7 @@ The Unit Test in this sample makes use of xUnit (testing) and Moq (mocking).
 </PropertyGroup>
 ```
 
-In addition, this plug-in should be installed for VSCode:
+In addition, this plug-in should be installed for vscode:
 https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer
 
 ### ProgramFake

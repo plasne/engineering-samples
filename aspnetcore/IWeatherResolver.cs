@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace aspnetcore
 {
 
-    public interface IWeatherService
+    public interface IWeatherResolver
     {
 
-        IEnumerable<WeatherServiceData> GetForecast();
+        Task<IEnumerable<WeatherServiceData>> GetForecast();
 
     }
 

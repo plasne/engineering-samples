@@ -27,6 +27,13 @@ dotnet add package Microsoft.NET.Test.Sdk
 dotnet restore
 ```
 
+You can probably get rid of the unneeded project files (settings will be provided via environment variable and Kestrel should be used to run the solution):
+
+```bash
+rm appsettings*.json
+rm -r Properties
+```
+
 ## Configuration
 
 https://github.com/bolorundurowb/dotenv.net
@@ -38,7 +45,7 @@ DotEnv is used for configuration management, so you can create a ".env" file in 
 -   HOST_URL: If set, this will determine what names and ports the solution is hosted on. Despite the name, you can use a semicolon to separate multiple entries. For hosting behind a gateway (which is common), you might use http://*:80 and allow the gateway to terminate SSL.
 -   ALLOWED_ORIGINS: In order for CORS to work, you must specify a semicolon-delimited list of origins to allow via CORS. For example, "http://localhost:5000;https://sample.plasne.com" would allow for both testing locally and using a published domain.
 -   ASPNETCORE_ENVIRONMENT: You can set this to "Development", "Staging", or "Production".
--   APPINSIGHTS_KEY: [REQUIRED] You must set this to the instrumentation key for AppInsights.
+-   APPINSIGHTS_KEY: If you intend to use AppInsights, you must set this instrumentation key.
 
 ## CORS
 
@@ -73,7 +80,46 @@ services.AddCors(options =>
     });
 ```
 
-..and then decorate methods or controllers with [EnableCors("AllowedOrigins")].
+...and then decorate methods or controllers with [EnableCors("AllowedOrigins")].
+
+## HttpClient
+
+Per https://docs.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests, it is important to use an IHttpClientFactory for all HTTP/S requests.
+
+If your network requires a proxy, you can use the ProxyHandler, which will use PROXY, HTTP_PROXY, or HTTPS_PROXY as a URL to send the traffic through.
+
+This sample show configuring a typed HttpClient for AppConfig in the Startup.cs...
+
+```c#
+public void ConfigureServices(IServiceCollection services)
+{
+
+    // add HttpClient (could be typed or named)
+    services
+        .AddHttpClient<AppConfig>()
+        .ConfigurePrimaryHttpMessageHandler(() => new ProxyHandler());
+
+    // add configuration
+    services.AddSingleton<AppConfig, AppConfig>();
+
+}
+```
+
+...then in the constructor for AppConfig, you can receive the client like this...
+
+```c#
+public class AppConfig
+{
+
+    public AppConfig(ILogger<AppConfig> logger = null, HttpClient httpClient = null, IHttpClientFactory httpClientFactory = null)
+    {
+        this.Logger = logger;
+        this.HttpClient = httpClient ?? httpClientFactory?.CreateClient("config");
+    }
+}
+```
+
+Note that the above code would also work for a named HttpClient called "config".
 
 ## Unit Testing
 
@@ -92,6 +138,33 @@ You must include the following in the .csproj file for xUnit to work:
 
 In addition, this plug-in should be installed for VSCode:
 https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer
+
+The common library includes some extensions that are helpful for unit testing controllers. Consider the following service which needs to be tested. You need to make sure you return an ActionResult...
+
+```c#
+[HttpGet]
+public async Task<ActionResult<IEnumerable<WeatherForecast>>> Get()
+{
+    var list = await this.WeatherResolver.GetForecast();
+    return Ok(list);
+}
+```
+
+...then in your unit test you can use the StatusCode() and Body() extensions like so...
+
+```c#
+using (var provider = services.BuildServiceProvider())
+{
+    using (var scope = provider.CreateScope())
+    {
+        var controller = scope.ServiceProvider.GetService<Controllers.WeatherForecastController>();
+        var result = await controller.Get();
+        Assert.Equal(200, result.StatusCode()); // <-- .StatusCode() extension returns the HTTP Status Code
+        var list = result.Body(); // <-- .Body() extension returns the typed body, by contrast .Value is always null
+        Assert.Equal(5, list.Count());
+    }
+}
+```
 
 ### Running the application
 
@@ -152,3 +225,41 @@ You should check the logs for type "requests" or you can use the Live Metrics St
 NOTE: with the aspnetcore implementation, there is no requirement to Flush(); frankly I am not sure how that is addressed.
 
 More details can be found here: https://docs.microsoft.com/en-us/azure/azure-monitor/app/asp-net-core.
+
+Implementation involves the following in Program.cs...
+
+```c#
+public static IWebHostBuilder CreateHostBuilder(string[] args)
+{
+    var builder = WebHost.CreateDefaultBuilder(args)
+        .ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            // NOTE: you must create a filter that says what logs to send to AppInsights, in this case,
+            //   I chose the same log level as my console logger
+            logging.AddFilter<ApplicationInsightsLoggerProvider>("", AddSingleLineConsoleLoggerConfiguration.LogLevel);
+        })
+        .UseStartup<Startup>();
+    if (HostUrl != null) builder.UseUrls(HostUrl);
+    return builder;
+}
+```
+
+...and the following in Startup.cs...
+
+```c#
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddHttpContextAccessor(); // required for x-correlation header
+    services.AddApplicationInsightsTelemetry();
+    services.AddSingleton<ITelemetryInitializer, CorrelationToTelemetry>();
+}
+```
+
+This configuration will log:
+
+-   All requests
+-   All ILogger messages as traces
+-   System metrics (CPU, memory, etc.)
+
+It is often useful to trace a request from the client, through the API, through the microservices, and back. If you make a request with an "x-correlation" header, that header will be used as operation_Id on all requests and traces.

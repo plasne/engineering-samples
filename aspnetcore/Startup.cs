@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.ApplicationInsights.Extensibility;
+using common;
 
 namespace aspnetcore
 {
@@ -18,16 +20,24 @@ namespace aspnetcore
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
 
-            // enable as appropriate
-            //services.AddHttpContextAccessor();
-
             // add logging
-            Program.AddLogging(services);
+            services.AddSingleLineConsoleLogger();
+
+            // add telemetry
+            services.AddHttpContextAccessor();
             services.AddApplicationInsightsTelemetry();
+            services.AddSingleton<ITelemetryInitializer, CorrelationToTelemetry>();
+
+            // add HttpClient (could be typed or named)
+            services
+                .AddHttpClient<AppConfig>()
+                .ConfigurePrimaryHttpMessageHandler(() => new ProxyHandler());
+
+            // add configuration
+            services.AddSingleton<AppConfig, AppConfig>();
 
             // setup CORS policy
             string[] allowedOrigins = Program.AllowedOrigins;
@@ -46,26 +56,27 @@ namespace aspnetcore
             }
 
             // add the real weather service
-            services.AddSingleton<IWeatherService, RealWeatherService>();
+            services.AddSingleton<IWeatherResolver, WeatherResolver>();
 
             // add controllers
             services.AddControllers();
 
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider provider)
         {
 
-            // log the parameters
+            // load the configuration
             var logger = provider.GetService<ILogger<Startup>>();
-            logger.LogInformation($"LOG_LEVEL = '{Program.LogLevel}'");
-            logger.LogInformation($"DISABLE_COLORS = '{Program.DisableColors}'");
-            logger.LogInformation($"HOST_URL = '{Program.HostUrl}'");
-            string[] allowedOrigins = Program.AllowedOrigins;
-            if (allowedOrigins != null) logger.LogInformation($"ALLOWED_ORIGINS = '{string.Join(";", allowedOrigins)}'");
-            logger.LogInformation($"ASPNETCORE_ENVIRONMENT = '{Program.Environment}'");
-            logger.LogInformation($"APPINSIGHTS_INSTRUMENTATIONKEY = '{(string.IsNullOrEmpty(Program.AppInsightsInstrumentationKey) ? "(not-set)" : "(set)")}'");
+            logger.LogInformation("Loading configuration...");
+            var config = provider.GetService<AppConfig>();
+            config.Apply().Wait();
+
+            // confirm and log the configuration
+            config.Optional("HOST_URL", Program.HostUrl);
+            config.Optional("ALLOWED_ORIGINS", Program.AllowedOrigins);
+            config.Optional("ASPNETCORE_ENVIRONMENT", Program.Environment);
+            config.Optional("APPINSIGHTS_INSTRUMENTATIONKEY", hideValue: true);
 
             // allow the use of a developer exception page
             if (env.IsDevelopment())
@@ -94,5 +105,8 @@ namespace aspnetcore
             });
 
         }
+
+
+
     }
 }

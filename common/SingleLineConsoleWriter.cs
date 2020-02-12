@@ -1,31 +1,85 @@
 using System;
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Http;
 
-namespace tools
+namespace common
 {
+
+    public static class AddSingleLineConsoleLoggerConfiguration
+    {
+
+        public static LogLevel LogLevel
+        {
+            get
+            {
+                return AppConfig.GetEnumOnce<LogLevel>("LOG_LEVEL", Microsoft.Extensions.Logging.LogLevel.Information);
+            }
+        }
+
+        public static bool DisableColors
+        {
+            get
+            {
+                return AppConfig.GetBoolOnce("DISABLE_COLORS", false);
+            }
+        }
+
+        public static void AddSingleLineConsoleLogger(this IServiceCollection services, LogLevel? logLevel = null, bool? disableColors = null)
+        {
+
+            // add only if it doesn't exist
+            if (!services.Any(x => x.ServiceType == typeof(SingleLineConsoleLoggerConfiguration)))
+            {
+
+                // log the logger variables
+                Console.WriteLine($"LOG_LEVEL = '{LogLevel}'");
+
+                // safe to add more than once
+                services.AddHttpContextAccessor();
+
+                // add the logger
+                services
+                    .AddLogging(configure =>
+                    {
+                        services.TryAddSingleton<SingleLineConsoleLoggerConfiguration>(p => new SingleLineConsoleLoggerConfiguration()
+                        {
+                            DisableColors = disableColors ?? DisableColors
+                        });
+                        services.TryAddSingleton<ILoggerProvider, SingleLineConsoleLoggerProvider>();
+                    })
+                    .Configure<LoggerFilterOptions>(options =>
+                    {
+                        options.MinLevel = LogLevel;
+                    });
+
+            }
+
+        }
+    }
+
 
     public class SingleLineConsoleLoggerProvider : ILoggerProvider
     {
+        public SingleLineConsoleLoggerProvider(SingleLineConsoleLoggerConfiguration config = null, IHttpContextAccessor httpContextAccessor = null)
+        {
+            _config = config ?? new SingleLineConsoleLoggerConfiguration();
+            _httpContextAccessor = httpContextAccessor;
+        }
+
         private readonly SingleLineConsoleLoggerConfiguration _config;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ConcurrentDictionary<string, SingleLineConsoleLogger> _loggers = new ConcurrentDictionary<string, SingleLineConsoleLogger>();
-
-        public SingleLineConsoleLoggerProvider()
-        {
-            _config = new SingleLineConsoleLoggerConfiguration();
-        }
-
-        public SingleLineConsoleLoggerProvider(SingleLineConsoleLoggerConfiguration config)
-        {
-            _config = config;
-        }
 
         public ILogger CreateLogger(string categoryName)
         {
-            return _loggers.GetOrAdd(categoryName, name => new SingleLineConsoleLogger(name, _config));
+            return _loggers.GetOrAdd(categoryName, name => new SingleLineConsoleLogger(name, _config, _httpContextAccessor));
         }
 
         public void Dispose()
@@ -47,15 +101,18 @@ namespace tools
     {
         private readonly string _name;
         private readonly SingleLineConsoleLoggerConfiguration _config;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
         private BlockingCollection<string> Queue { get; set; } = new BlockingCollection<string>();
         private CancellationTokenSource QueueTakeCts { get; set; } = new CancellationTokenSource();
         private Task Dispatcher { get; set; }
         private ManualResetEventSlim IsShutdown { get; set; } = new ManualResetEventSlim(false);
 
-        public SingleLineConsoleLogger(string name, SingleLineConsoleLoggerConfiguration config)
+        public SingleLineConsoleLogger(string name, SingleLineConsoleLoggerConfiguration config, IHttpContextAccessor httpContextAccessor)
         {
             _name = name;
             _config = config;
+            _httpContextAccessor = httpContextAccessor;
             Dispatcher = Task.Run(() =>
             {
                 while (!QueueTakeCts.IsCancellationRequested)
@@ -115,9 +172,11 @@ namespace tools
                 var logLevelString = GetLogLevelString(logLevel);
                 sb.Append(logLevelString);
                 if (!_config.DisableColors) sb.Append("\u001b[0m"); // reset
-                sb.Append($" {DateTime.UtcNow.ToString()} [{_name}] {message}");
+                sb.Append($" {DateTime.UtcNow.ToString()} [src:{_name}] ");
+                string correlation = this._httpContextAccessor?.HttpContext?.Request?.Headers["x-correlation"];
+                if (!string.IsNullOrEmpty(correlation)) sb.Append($"[cid:{correlation}] ");
+                sb.Append(message);
                 Queue.Add(sb.ToString());
-
             }
 
             // write the exception

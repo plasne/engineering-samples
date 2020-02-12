@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using dotenv.net;
 using Microsoft.AspNetCore;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.ApplicationInsights;
+using dotenv.net;
+using common;
 
 namespace aspnetcore
 {
@@ -16,32 +12,11 @@ namespace aspnetcore
     public class Program
     {
 
-        public static string LogLevel
-        {
-            get
-            {
-                return System.Environment.GetEnvironmentVariable("LOG_LEVEL");
-            }
-        }
-
-        public static bool DisableColors
-        {
-            get
-            {
-                string use = System.Environment.GetEnvironmentVariable("DISABLE_COLORS");
-                if (string.IsNullOrEmpty(use)) return false;
-                var positive = new string[] { "true", "1", "yes" };
-                return (positive.Contains(use.ToLower()));
-            }
-        }
-
         public static string[] HostUrl
         {
             get
             {
-                string s = System.Environment.GetEnvironmentVariable("HOST_URL");
-                if (string.IsNullOrEmpty(s)) return null;
-                return s.Split(";");
+                return AppConfig.GetArrayOnce("HOST_URL");
             }
         }
 
@@ -49,9 +24,7 @@ namespace aspnetcore
         {
             get
             {
-                string s = System.Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
-                if (string.IsNullOrEmpty(s)) return null;
-                return s.Split(";");
+                return AppConfig.GetArrayOnce("ALLOWED_ORIGINS");
             }
         }
 
@@ -59,7 +32,8 @@ namespace aspnetcore
         {
             get
             {
-                return System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                // can inform: env.IsDevelopment()
+                return AppConfig.GetStringOnce("ASPNETCORE_ENVIRONMENT");
             }
         }
 
@@ -67,41 +41,14 @@ namespace aspnetcore
         {
             get
             {
-                return System.Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
+                return AppConfig.GetStringOnce("APPINSIGHTS_INSTRUMENTATIONKEY");
             }
-        }
-
-        public static void AddLogging(IServiceCollection services)
-        {
-
-            // add logging
-            services
-                .AddLogging(configure =>
-                {
-                    services.AddSingleton<ILoggerProvider>(p => new tools.SingleLineConsoleLoggerProvider(
-                        new tools.SingleLineConsoleLoggerConfiguration()
-                        {
-                            DisableColors = DisableColors
-                        }
-                    ));
-                })
-                .Configure<LoggerFilterOptions>(options =>
-                {
-                    if (Enum.TryParse(LogLevel, out Microsoft.Extensions.Logging.LogLevel level))
-                    {
-                        options.MinLevel = level;
-                    }
-                    else
-                    {
-                        options.MinLevel = Microsoft.Extensions.Logging.LogLevel.Information;
-                    }
-                });
-
         }
 
         public static void Main(string[] args)
         {
-            DotEnv.Config(false);
+            var env = FindFile.Up(".env");
+            if (!string.IsNullOrEmpty(env)) DotEnv.Config(false, env);
             CreateHostBuilder(args).Build().Run();
         }
 
@@ -111,7 +58,7 @@ namespace aspnetcore
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-                    //logging.AddAzureWebAppDiagnostics();
+                    logging.AddFilter<ApplicationInsightsLoggerProvider>("", AddSingleLineConsoleLoggerConfiguration.LogLevel);
                 })
                 .UseStartup<Startup>();
             if (HostUrl != null) builder.UseUrls(HostUrl);

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Cors;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -12,15 +12,15 @@ namespace aspnetcore.Controllers
     public class WeatherForecastController : ControllerBase
     {
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger, IWeatherService weatherService)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, IWeatherResolver weatherResolver)
         {
             this.Logger = logger;
-            this.WeatherService = weatherService;
+            this.WeatherResolver = weatherResolver;
         }
 
         private readonly ILogger<WeatherForecastController> Logger;
 
-        private IWeatherService WeatherService { get; }
+        private IWeatherResolver WeatherResolver { get; }
 
         private static readonly string[] Summaries = new[]
         {
@@ -28,11 +28,16 @@ namespace aspnetcore.Controllers
         };
 
         [HttpGet]
-        public IEnumerable<WeatherForecast> Get()
+        public async Task<ActionResult<IEnumerable<WeatherForecast>>> Get()
         {
             var list = new List<WeatherForecast>();
+
+            // fetch the forecast
+            var raw = await this.WeatherResolver.GetForecast();
+            Logger.LogDebug($"{raw.Count()} forecasts obtained");
+
+            // enrich with summaries
             var rng = new Random();
-            var raw = this.WeatherService.GetForecast();
             var len = Math.Min(raw.Count(), 5);
             for (int i = 0; i < len; i++)
             {
@@ -45,7 +50,8 @@ namespace aspnetcore.Controllers
                 };
                 list.Add(newFormat);
             }
-            return list;
+
+            return Ok(list);
         }
 
         [HttpGet("version")]
