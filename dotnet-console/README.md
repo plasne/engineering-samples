@@ -2,7 +2,7 @@
 
 This sample incorporates the following features into a dotnet console application:
 
--   Configuration using DotEnv
+-   Configuration using DotEnv and/or AppConfig
 -   Dependency Injection
 -   Unit Testing using xUnit
 -   Mocking using Moq

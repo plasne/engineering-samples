@@ -2,7 +2,7 @@
 
 This sample incorporates the following features into an aspnetcore application:
 
--   Configuration using DotEnv
+-   Configuration using DotEnv and/or AppConfig
 -   Dependency Injection
 -   CORS
 -   Unit Testing using xUnit
