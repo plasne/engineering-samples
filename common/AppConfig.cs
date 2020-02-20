@@ -16,17 +16,20 @@ namespace common
         {
             this.Logger = logger;
             this.HttpClient = httpClient ?? httpClientFactory?.CreateClient("config");
-            Optional("APPCONFIG", AppConfigName);
-            Optional("CONFIG_KEYS", ConfigKeys);
-            Optional("TENANT_ID", hideIfEmpty: true);
-            Optional("CLIENT_ID", hideIfEmpty: true);
-            Optional("CLIENT_SECRET", hideValue: true, hideIfEmpty: true);
-            Optional("TENANT_ID_CONFIG", hideIfEmpty: true);
-            Optional("CLIENT_ID_CONFIG", hideIfEmpty: true);
-            Optional("CLIENT_SECRET_CONFIG", hideValue: true, hideIfEmpty: true);
-            Optional("TENANT_ID_VAULT", hideIfEmpty: true);
-            Optional("CLIENT_ID_VAULT", hideIfEmpty: true);
-            Optional("CLIENT_SECRET_VAULT", hideValue: true, hideIfEmpty: true);
+            if (logger != null)
+            {
+                Optional("APPCONFIG", AppConfigName);
+                Optional("CONFIG_KEYS", ConfigKeys);
+                Optional("TENANT_ID", hideIfEmpty: true);
+                Optional("CLIENT_ID", hideIfEmpty: true);
+                Optional("CLIENT_SECRET", hideValue: true, hideIfEmpty: true);
+                Optional("TENANT_ID_CONFIG", hideIfEmpty: true);
+                Optional("CLIENT_ID_CONFIG", hideIfEmpty: true);
+                Optional("CLIENT_SECRET_CONFIG", hideValue: true, hideIfEmpty: true);
+                Optional("TENANT_ID_VAULT", hideIfEmpty: true);
+                Optional("CLIENT_ID_VAULT", hideIfEmpty: true);
+                Optional("CLIENT_SECRET_VAULT", hideValue: true, hideIfEmpty: true);
+            }
         }
 
         private ILogger<AppConfig> Logger { get; }
@@ -205,7 +208,7 @@ namespace common
             return val;
         }
 
-        public async Task<string> GetString(string key, string dflt = null)
+        public async Task<string> GetString(string key, string val, string dflt = null)
         {
             if (Cache.ContainsKey(key))
             {
@@ -213,7 +216,7 @@ namespace common
             }
             else
             {
-                string val = System.Environment.GetEnvironmentVariable(key);
+                val = string.IsNullOrEmpty(val) ? System.Environment.GetEnvironmentVariable(key) : val;
                 val = await GetFromKeyVault(val);
                 if (string.IsNullOrEmpty(val)) val = dflt;
                 Cache.Add(key, val);
@@ -225,11 +228,12 @@ namespace common
         {
             string val = System.Environment.GetEnvironmentVariable(key);
             int ival = dflt;
-            int.TryParse(key, out ival);
+            // bugfix: oddly TryParse sets ival to default(T) not keeping dflt
+            if (!int.TryParse(val, out ival)) ival = dflt;
             return ival;
         }
 
-        public async Task<int> GetInt(string key, int dflt = 0)
+        public async Task<int> GetInt(string key, string val, int dflt = 0)
         {
             if (Cache.ContainsKey(key))
             {
@@ -237,10 +241,11 @@ namespace common
             }
             else
             {
-                string val = System.Environment.GetEnvironmentVariable(key);
+                val = string.IsNullOrEmpty(val) ? System.Environment.GetEnvironmentVariable(key) : val;
                 val = await GetFromKeyVault(val);
                 int ival = dflt;
-                int.TryParse(key, out ival);
+                // bugfix: oddly TryParse sets ival to default(T) not keeping dflt
+                if (!int.TryParse(val, out ival)) ival = dflt;
                 Cache.Add(key, ival);
                 return ival;
             }
@@ -250,12 +255,12 @@ namespace common
         {
             string val = System.Environment.GetEnvironmentVariable(key);
             bool bval = (dflt) ?
-                new string[] { "false", "0", "no" }.Contains(val?.ToLower()) :
+                !new string[] { "false", "0", "no" }.Contains(val?.ToLower()) :
                 new string[] { "true", "1", "yes" }.Contains(val?.ToLower());
             return bval;
         }
 
-        public async Task<bool> GetBool(string key, bool dflt = false)
+        public async Task<bool> GetBool(string key, string val, bool dflt = false)
         {
             if (Cache.ContainsKey(key))
             {
@@ -263,11 +268,11 @@ namespace common
             }
             else
             {
-                string val = System.Environment.GetEnvironmentVariable(key);
+                val = string.IsNullOrEmpty(val) ? System.Environment.GetEnvironmentVariable(key) : val;
                 val = await GetFromKeyVault(val);
                 bool bval = (dflt) ?
-                    Negative.Contains(val.ToLower()) :
-                    Positive.Contains(val.ToLower());
+                    !Negative.Contains(val?.ToLower()) :
+                    Positive.Contains(val?.ToLower());
                 Cache.Add(key, bval);
                 return bval;
             }
@@ -281,7 +286,7 @@ namespace common
             return aval;
         }
 
-        public async Task<string[]> GetArray(string key, string delimiter = ",", string[] dflt = null)
+        public async Task<string[]> GetArray(string key, string val, string delimiter = ",", string[] dflt = null)
         {
             if (Cache.ContainsKey(key))
             {
@@ -289,7 +294,7 @@ namespace common
             }
             else
             {
-                string val = System.Environment.GetEnvironmentVariable(key);
+                val = string.IsNullOrEmpty(val) ? System.Environment.GetEnvironmentVariable(key) : val;
                 val = await GetFromKeyVault(val);
                 var aval = dflt ?? new string[] { };
                 if (!string.IsNullOrEmpty(val)) aval = val.Split(delimiter).Select(id => id.Trim()).ToArray();
@@ -307,7 +312,7 @@ namespace common
             return tval;
         }
 
-        public async Task<T> GetEnum<T>(string key, T dflt = default(T)) where T : struct
+        public async Task<T> GetEnum<T>(string key, string val, T dflt = default(T)) where T : struct
         {
             if (Cache.ContainsKey(key))
             {
@@ -315,10 +320,11 @@ namespace common
             }
             else
             {
-                string val = System.Environment.GetEnvironmentVariable(key);
+                val = string.IsNullOrEmpty(val) ? System.Environment.GetEnvironmentVariable(key) : val;
                 val = await GetFromKeyVault(val);
                 T tval = dflt;
-                Enum.TryParse(key, true, out tval);
+                // bugfix: oddly TryParse sets tval to default(T) not keeping dflt
+                if (!Enum.TryParse(val, true, out tval)) tval = dflt;
                 Cache.Add(key, tval);
                 return tval;
             }
