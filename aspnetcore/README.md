@@ -9,6 +9,7 @@ This sample incorporates the following features into an aspnetcore application:
 -   Mocking using Moq
 -   Logging using a custom console logger
 -   Telemetery using App Insights
+- Proper use of IHttpClientFactory
 
 This should serve as a starting point for aspnetcore applications that are hosted in Azure App Service, Kubernetes, or anywhere else.
 
