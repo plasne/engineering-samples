@@ -8,6 +8,7 @@ This sample incorporates the following features into a dotnet console applicatio
 -   Mocking using Moq
 -   Logging using a custom console logger
 -   Telemetery using App Insights
+- Proper use of IHttpClientFactory
 
 This should serve as a starting point for console applications that are common components of microservices solutions.
 
@@ -20,6 +21,8 @@ dotnet new console
 dotnet add package dotenv.net
 dotnet add package Microsoft.ApplicationInsights
 dotnet add package Microsoft.Extensions.DependencyInjection
+dotnet add package Microsoft.Extensions.Hosting
+dotnet add package Microsoft.Extensions.Http
 dotnet add package Microsoft.Extensions.Logging
 dotnet add package Moq
 dotnet add package xunit
